@@ -13,7 +13,7 @@ main(int argc, char *argv[]) {
 	std::string filetype(argv[1]);
 	std::string word(argv[2]);
 
-	auto config = cpptoml::parse_file("../toggles.toml");
+	auto config = cpptoml::parse_file("toggles.toml");
 	auto filetype_toggles = config->get_array_of<cpptoml::array>(filetype);
 	if (filetype_toggles) {
 		for (const auto &section : *filetype_toggles) {
