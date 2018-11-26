@@ -1,2 +1,2 @@
 all:
-	g++ -O3 toggler.cpp -o toggler
+	@g++ -O3 toggler.cpp -o toggler
