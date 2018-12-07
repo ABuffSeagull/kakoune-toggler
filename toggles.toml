@@ -1,9 +1,0 @@
-global = [
-	["true", "false"],
-	["begin", "end"],
-	["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
-]
-
-javascript = [
- ["window", "document"],
-]
