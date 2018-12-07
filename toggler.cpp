@@ -50,5 +50,7 @@ main(int argc, char *argv[]) {
 			return EXIT_SUCCESS;
 		}
 	}
+	std::cout << word;
+	std::cerr << "Toggler.kak: Word not found in toggles\n";
 	return EXIT_FAILURE;
 }
