@@ -60,11 +60,12 @@ main(int argc, char *argv[]) {
 	wordexp("$HOME/.config/kak/toggles.toml", &expanded, 0);
 	auto config = cpptoml::parse_file(expanded.we_wordv[0]);
 
+	find_toggle(config, filetype, lower_word);
+
 	auto extends = config->get_qualified_array_of<std::string>(filetype + ".extends");
 	for (const auto &extend : *extends) {
 		find_toggle(config, extend, lower_word);
 	}
-	find_toggle(config, filetype, lower_word);
 
 	find_toggle(config, "global", lower_word);
 
