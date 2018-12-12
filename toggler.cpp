@@ -12,7 +12,6 @@ std::locale loc("");
 
 void
 find_toggle(std::shared_ptr<cpptoml::table> config, std::string key, std::string word) {
-	std::cerr << "key: " << key << ", word: " << word << '.' << std::endl;
 	auto filetype_toggles = config->get_qualified_array_of<cpptoml::array>(key + ".toggles");
 	if (filetype_toggles) {
 		for (const auto &section : *filetype_toggles) {
@@ -42,12 +41,13 @@ find_toggle(std::shared_ptr<cpptoml::table> config, std::string key, std::string
 
 int
 main(int argc, char *argv[]) {
-	if (argc != 3) {
-		std::cerr << "Usage:\n\t$ toggler <filetype> <word>\n";
+	if (argc == 1) {
+		std::cerr << "Usage:\n\t$ toggler <word> <filetype>\n";
 		return EXIT_FAILURE;
 	}
-	std::string filetype(argv[1]);
-	std::string word(argv[2]);
+	std::string word(argv[1]);
+	std::string filetype;
+	filetype = argc > 2 ? argv[2] : "global";
 
 	if (std::isupper(word[0], loc)) isTitle = true;
 	if (std::isupper(word[1], loc)) isScream = true;
