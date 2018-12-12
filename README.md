@@ -21,7 +21,7 @@ If so, add this to your kakrc
 ```sh
 plug "abuffseagull/kakoune-toggler" %do{ make }
 ```
-Otherwise, just stick in wherever, and make sure to run `make`.
+Otherwise, just stick it wherever, and make sure to run `make`.
 
 Then you must make a symbolic link to the `toggler` binary from a `bin` folder in your kak config directory.
 (Idea lifted from [kakoune-snippets](https://github.com/JJK96/kakoune-snippets),
