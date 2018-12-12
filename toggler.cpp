@@ -41,14 +41,13 @@ find_toggle(std::shared_ptr<cpptoml::table> config, std::string key, std::string
 
 int
 main(int argc, char *argv[]) {
-	if (argc == 1) {
-		std::cerr << "Usage:\n\t$ toggler <word> <filetype>\n";
-		return EXIT_FAILURE;
-	}
-	std::string word(argv[1]);
 	std::string filetype;
-	filetype = argc > 2 ? argv[2] : "global";
+	filetype = argc == 2 ? argv[1] : "";
 
+	std::string word;
+	std::cin >> word;
+
+	// std::cerr << "word: " << word << ", filetype: " << filetype << "\n";
 	if (std::isupper(word[0], loc)) isTitle = true;
 	if (std::isupper(word[1], loc)) isScream = true;
 	std::string lower_word("");
