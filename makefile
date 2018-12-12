@@ -1,5 +1,5 @@
 all:
-	@$(CXX) -Og toggler.cpp -o toggler
+	@$(CXX) -std=c++11 -Og toggler.cpp -o toggler
 
 debug:
-	@$(CXX) -Wall -O0 toggler.cpp -o toggler
+	@$(CXX) -std=c++11 -Wall -O0 toggler.cpp -o toggler

@@ -17,7 +17,13 @@ find_toggle(std::shared_ptr<cpptoml::table> config, std::string key, std::string
 		for (const auto &section : *filetype_toggles) {
 			auto values = *section->get_array_of<std::string>();
 
-			auto found = std::find(values.begin(), values.end(), word);
+			auto found = std::find_if(values.begin(), values.end(), [&word](const std::string & it) {
+				std::string lower("");
+				for (const auto &ch : it) {
+					lower += std::tolower(ch, loc);
+				}
+				return word == lower;
+			});
 			if (found == values.end()) continue;
 
 			found += 1;
