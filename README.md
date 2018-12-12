@@ -34,7 +34,7 @@ $ ln -s ~/.config/kak/plugins/kakoune-toggler/toggler ~/.config/kak/bin/toggler
 
 ## Configuration
 
-Your togglabe words can be configured in a `toggles.toml` file in your kak config directory.
+Your togglable words can be configured in a `toggles.toml` file in your kak config directory.
  
 The toggles are in an array of arrays of strings, 
 under the `toggles` key under a table named by the filetype you would like them to be available under.
