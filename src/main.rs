@@ -86,10 +86,6 @@ fn main() -> Result<()> {
             if let Some(lang_value) = table.get(&lang_type) {
                 // If found then put into the struct
                 let lang_toggles = lang_value.clone().try_into::<LanguageToggle>()?;
-                // If it has any extensions, add it to the queue
-                if let Some(extra_filetypes) = lang_toggles.extends {
-                    filetype_queue.append(&mut extra_filetypes.clone());
-                }
                 // Find the search word
                 if let Some(found_word) = lang_toggles
                     .toggles
@@ -99,6 +95,10 @@ fn main() -> Result<()> {
                     // If found, break out of loop
                     break Some(found_word.clone());
                 };
+                // If it has any extensions, add it to the queue
+                if let Some(extra_filetypes) = lang_toggles.extends {
+                    filetype_queue.append(&mut extra_filetypes.clone());
+                }
             }
         } else {
             break None;
