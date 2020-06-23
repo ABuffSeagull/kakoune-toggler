@@ -30,7 +30,7 @@ fn main() -> Result<()> {
     io::stdin()
         .read_line(&mut buffer)
         .context("Need a word to toggle")?;
-    let search_word = buffer.trim().to_lowercase();
+    let search_word = buffer.trim();
 
     // Get the casing of the search word
     // let word_casing = {
@@ -101,20 +101,16 @@ fn main() -> Result<()> {
         }
     };
 
-    // If found, print out the word without a newline
-    if let Some(found_word) = found_word {
-        print!("{}", found_word);
-    }
+    // Print out found toggle or original if not found
+    print!("{}", found_word.unwrap_or(&buffer));
 
     Ok(())
 }
 
 fn get_next_word<'a>(word_array: &'a [String], search_word: &str) -> Option<&'a String> {
     // Find the position of search_word
-    let index = word_array
+    word_array
         .iter()
-        .map(|value| value.to_lowercase())
-        .position(|value| value == search_word);
-    // If found, grab next in sequence
-    index.and_then(|index| word_array.iter().cycle().nth(index + 1))
+        .position(|value| value == search_word)
+        .and_then(|index| word_array.iter().cycle().nth(index + 1))
 }
