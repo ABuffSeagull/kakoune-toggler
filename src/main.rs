@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::env::args;
 use std::fs;
 use std::io;
@@ -60,15 +61,12 @@ fn main() -> Result<()> {
     })?;
 
     // Parse the toggle file into a table
-    let value = toml::from_slice::<toml::Value>(&bytes).with_context(|| {
+    let table: HashMap<String, LanguageToggle> = toml::from_slice(&bytes).with_context(|| {
         format!(
             "Something went wrong parsing the toggle file: {}",
             path.to_string_lossy()
         )
     })?;
-    let table = value
-        .as_table()
-        .context("Top level TOML should always be a table")?;
 
     // Queue of each file to check in sequence
     let mut filetype_queue = vec![String::from("global")];
@@ -83,9 +81,7 @@ fn main() -> Result<()> {
         // Grab the next type
         if let Some(lang_type) = filetype_queue.pop() {
             // Try and grab the filetype
-            if let Some(lang_value) = table.get(&lang_type) {
-                // If found then put into the struct
-                let lang_toggles = lang_value.clone().try_into::<LanguageToggle>()?;
+            if let Some(lang_toggles) = table.get(&lang_type) {
                 // Find the search word
                 if let Some(found_word) = lang_toggles
                     .toggles
@@ -93,10 +89,10 @@ fn main() -> Result<()> {
                     .find_map(|arr| get_next_word(arr, &search_word))
                 {
                     // If found, break out of loop
-                    break Some(found_word.clone());
+                    break Some(found_word);
                 };
                 // If it has any extensions, add it to the queue
-                if let Some(extra_filetypes) = lang_toggles.extends {
+                if let Some(extra_filetypes) = &lang_toggles.extends {
                     filetype_queue.append(&mut extra_filetypes.clone());
                 }
             }
