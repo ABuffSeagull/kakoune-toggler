@@ -1,102 +1,124 @@
+use anyhow::{Context, Result};
+use serde::Deserialize;
 use std::env::args;
-use std::io::{self, ErrorKind};
+use std::fs;
+use std::io;
 use std::path::PathBuf;
-use std::{fs, process};
 
-#[derive(Debug)]
-struct WordOptions {
-    is_title: bool,
-    is_scream: bool,
+// enum Casing {
+//     IsOriginal,
+//     IsTitle,
+//     IsUpper,
+// }
+
+#[derive(Deserialize)]
+struct LanguageToggle {
+    extends: Option<Vec<String>>,
+    toggles: Vec<Vec<String>>,
 }
 
-fn main() {
+fn main() -> Result<()> {
     // Skip the first arg, since this is just the binary
     let mut args = args().skip(1);
-    let config_path = args.next().expect("Not given a config directory");
+    let config_path = args.next().context("Not given a config directory")?;
+    // This is not always needed, then we'll just check global toggles
     let filetype = args.next();
 
+    // Get the search_word to be toggled
     let mut buffer = String::new();
-    io::stdin().read_line(&mut buffer).unwrap_or_else(|_| {
-        eprintln!("Need a word to toggle");
-        process::exit(1);
-    });
-    let word = buffer.trim();
+    io::stdin()
+        .read_line(&mut buffer)
+        .context("Need a word to toggle")?;
+    let search_word = buffer.trim().to_lowercase();
 
-    let _word_options = {
-        let mut is_upper = word.chars().map(|c| c.is_uppercase());
-        let is_title = is_upper.next().expect("You can't pass an empty string");
-        WordOptions {
-            is_title,
-            is_scream: is_title && is_upper.next().unwrap_or(false),
-        }
-    };
+    // Get the casing of the search word
+    // let word_casing = {
+    //     let mut is_upper_iter = search_word.chars().map(|c| c.is_uppercase());
+    //     let is_title = is_upper_iter
+    //         .next()
+    //         .context("You can't pass an empty string")?;
+    //     if let Some(true) = is_upper_iter.next() {
+    //         Casing::IsUpper
+    //     } else if is_title {
+    //         Casing::IsTitle
+    //     } else {
+    //         Casing::IsLower
+    //     }
+    // };
 
+    // Make the toggle file path
     let mut path = PathBuf::new();
     path.push(config_path);
     path.push("toggles.toml");
 
-    let bytes = fs::read(&path).unwrap_or_else(|error| {
-        match error.kind() {
-            ErrorKind::NotFound => eprintln!("{} not found", path.to_string_lossy()),
-            err => eprintln!("Something went wrong reading the toggle file: {:#?}", err),
-        }
-        process::exit(1);
-    });
+    // Read the toggle file
+    let bytes = fs::read(&path).with_context(|| {
+        format!(
+            "Something went wrong with reading the toggle file: {}",
+            path.to_string_lossy()
+        )
+    })?;
 
-    let value = toml::from_slice::<toml::Value>(&bytes).unwrap_or_else(|error| {
-        eprintln!("Something went wrong parsing the toggle file: {}", error);
-        process::exit(1);
-    });
+    // Parse the toggle file into a table
+    let value = toml::from_slice::<toml::Value>(&bytes).with_context(|| {
+        format!(
+            "Something went wrong parsing the toggle file: {}",
+            path.to_string_lossy()
+        )
+    })?;
     let table = value
         .as_table()
-        .expect("Top level TOML should always be a table");
+        .context("Top level TOML should always be a table")?;
 
-    let mut all_types = Vec::new();
+    // Queue of each file to check in sequence
+    let mut filetype_queue = vec![String::from("global")];
 
+    // Add the (possible) filetype
     if let Some(typ) = filetype {
-        // all_types.push(typ.as_str());
+        filetype_queue.push(typ);
+    }
 
-        if let Some(extra_filetypes) = table
-            .get(&typ)
-            .and_then(|file| file.get("extends"))
-            .and_then(|value| value.as_array())
-        {
-            let mut parsed_types = extra_filetypes
-                .iter()
-                .filter_map(|value| value.as_str())
-                .collect::<Vec<&str>>();
-            all_types.append(&mut parsed_types);
+    // Check each type in sequence
+    let found_word = loop {
+        // Grab the next type
+        if let Some(lang_type) = filetype_queue.pop() {
+            // Try and grab the filetype
+            if let Some(lang_value) = table.get(&lang_type) {
+                // If found then put into the struct
+                let lang_toggles = lang_value.clone().try_into::<LanguageToggle>()?;
+                // If it has any extensions, add it to the queue
+                if let Some(extra_filetypes) = lang_toggles.extends {
+                    filetype_queue.append(&mut extra_filetypes.clone());
+                }
+                // Find the search word
+                if let Some(found_word) = lang_toggles
+                    .toggles
+                    .iter()
+                    .find_map(|arr| get_next_word(arr, &search_word))
+                {
+                    // If found, break out of loop
+                    break Some(found_word.clone());
+                };
+            }
+        } else {
+            break None;
         }
+    };
+
+    // If found, print out the word without a newline
+    if let Some(found_word) = found_word {
+        print!("{}", found_word);
     }
 
-    all_types.push("global");
-
-    let possible_word = all_types.into_iter().find_map(|typ| {
-        table
-            .get(typ)
-            .and_then(|some| some.as_table())
-            .and_then(|table| table.get("toggles"))
-            .and_then(|value| dbg!(dbg!(value.clone()).try_into::<Vec<Vec<&str>>>()).ok())
-            .and_then(|toggles| get_toggle(toggles, word))
-    });
-
-    if let Some(new_word) = possible_word {
-        print!("{}", new_word);
-    }
+    Ok(())
 }
 
-fn get_toggle<'a>(toggles: Vec<Vec<&'a str>>, word: &str) -> Option<&'a str> {
-    toggles
-        .into_iter()
-        .map(|array| get_next_word(array, word))
-        .find_map(|option| option)
-}
-
-fn get_next_word<'a>(word_array: Vec<&'a str>, word: &str) -> Option<&'a str> {
-    word_array
+fn get_next_word<'a>(word_array: &'a [String], search_word: &str) -> Option<&'a String> {
+    // Find the position of search_word
+    let index = word_array
         .iter()
-        .cycle()
-        .take(word_array.len() + 1)
-        .position(|value| *value == word)
-        .map(|index| word_array[index + 1])
+        .map(|value| value.to_lowercase())
+        .position(|value| value == search_word);
+    // If found, grab next in sequence
+    index.and_then(|index| word_array.iter().cycle().nth(index + 1))
 }
