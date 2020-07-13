@@ -48,9 +48,7 @@ fn main() -> Result<()> {
     // };
 
     // Make the toggle file path
-    let mut path = PathBuf::new();
-    path.push(config_path);
-    path.push("toggles.toml");
+    let path: PathBuf = [config_path.as_str(), "toggles.toml"].iter().collect();
 
     // Read the toggle file
     let bytes = fs::read(&path).with_context(|| {
