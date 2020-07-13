@@ -67,17 +67,17 @@ fn main() -> Result<()> {
     })?;
 
     // Queue of each file to check in sequence
-    let mut filetype_queue = vec![String::from("global")];
+    let mut filetype_stack = vec!["global".to_string()];
 
     // Add the (possible) filetype
     if let Some(typ) = filetype {
-        filetype_queue.push(typ);
+        filetype_stack.push(typ);
     }
 
     // Check each type in sequence
     let found_word = loop {
         // Grab the next type
-        if let Some(lang_type) = filetype_queue.pop() {
+        if let Some(lang_type) = filetype_stack.pop() {
             // Try and grab the filetype
             if let Some(lang_toggles) = table.get(&lang_type) {
                 // Find the search word
@@ -91,7 +91,7 @@ fn main() -> Result<()> {
                 };
                 // If it has any extensions, add it to the queue
                 if let Some(extra_filetypes) = &lang_toggles.extends {
-                    filetype_queue.append(&mut extra_filetypes.clone());
+                    filetype_stack.append(&mut extra_filetypes.clone());
                 }
             }
         } else {
