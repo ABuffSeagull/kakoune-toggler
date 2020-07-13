@@ -131,3 +131,30 @@ fn get_next_word<'a>(word_array: &'a [String], search_word: &str) -> Option<&'a 
             }
         })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn get_next_word_works() {
+        let array = vec!["first".to_string(), "last".to_string()];
+
+        assert_eq!(get_next_word(&array, "first"), Some(&"last".to_string()));
+        assert_eq!(get_next_word(&array, "last"), Some(&"first".to_string()));
+        assert_eq!(get_next_word(&array, "missing"), None);
+    }
+
+    #[test]
+    fn get_toggle_finds_direct_toggle() {
+        let language_map: HashMap<String, LanguageToggle> = [(
+            "language".to_string(),
+            LanguageToggle {
+                extends: None,
+                toggles: vec![vec!["foobar".to_string(), "barfoo".to_string()]],
+            },
+        )]
+        .iter()
+        .cloned()
+        .collect();
+    }
+}
