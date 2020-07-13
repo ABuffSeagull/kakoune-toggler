@@ -47,8 +47,19 @@ fn main() -> Result<()> {
     //     }
     // };
 
+    let table = parse_toggles_file(&config_path)?;
+
+    let found_word = get_toggled_word(&table, search_word, filetype);
+
+    // Print out found toggle or original if not found
+    print!("{}", found_word.unwrap_or(&buffer));
+
+    Ok(())
+}
+
+fn parse_toggles_file(config_path: &str) -> Result<HashMap<String, LanguageToggle>> {
     // Make the toggle file path
-    let path: PathBuf = [config_path.as_str(), "toggles.toml"].iter().collect();
+    let path: PathBuf = [config_path, "toggles.toml"].iter().collect();
 
     // Read the toggle file
     let bytes = fs::read(&path).with_context(|| {
@@ -59,13 +70,19 @@ fn main() -> Result<()> {
     })?;
 
     // Parse the toggle file into a table
-    let table: HashMap<String, LanguageToggle> = toml::from_slice(&bytes).with_context(|| {
+    toml::from_slice(&bytes).with_context(|| {
         format!(
             "Something went wrong parsing the toggle file: {}",
             path.to_string_lossy()
         )
-    })?;
+    })
+}
 
+fn get_toggled_word<'a>(
+    language_map: &'a HashMap<String, LanguageToggle>,
+    search_word: &str,
+    filetype: Option<String>,
+) -> Option<&'a String> {
     // Queue of each file to check in sequence
     let mut filetype_stack = vec!["global".to_string()];
 
@@ -75,11 +92,11 @@ fn main() -> Result<()> {
     }
 
     // Check each type in sequence
-    let found_word = loop {
+    loop {
         // Grab the next type
         if let Some(lang_type) = filetype_stack.pop() {
             // Try and grab the filetype
-            if let Some(lang_toggles) = table.get(&lang_type) {
+            if let Some(lang_toggles) = language_map.get(&lang_type) {
                 // Find the search word
                 if let Some(found_word) = lang_toggles
                     .toggles
@@ -97,12 +114,7 @@ fn main() -> Result<()> {
         } else {
             break None;
         }
-    };
-
-    // Print out found toggle or original if not found
-    print!("{}", found_word.unwrap_or(&buffer));
-
-    Ok(())
+    }
 }
 
 fn get_next_word<'a>(word_array: &'a [String], search_word: &str) -> Option<&'a String> {
