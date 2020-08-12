@@ -110,12 +110,5 @@ fn get_next_word<'a>(word_array: &'a [String], search_word: &str) -> Option<&'a 
     word_array
         .iter()
         .position(|current_word| current_word == search_word)
-        .map(move |found_index| {
-            let next_index = found_index + 1;
-            if next_index == word_array.len() {
-                &word_array[0]
-            } else {
-                &word_array[next_index]
-            }
-        })
+        .and_then(|found_index| word_array.iter().cycle().nth(found_index + 1))
 }
