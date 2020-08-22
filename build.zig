@@ -17,6 +17,7 @@ pub fn build(b: *Builder) void {
     exe.install();
 
     const run_cmd = exe.run();
+    run_cmd.addArg("/home/abuffseagull/.config/kak");
     run_cmd.step.dependOn(b.getInstallStep());
 
     const run_step = b.step("run", "Run the app");
