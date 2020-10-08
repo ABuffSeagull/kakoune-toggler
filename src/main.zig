@@ -55,7 +55,10 @@ pub fn main() !void {
     defer token_list.deinit();
     try parseTokenList(&lang_map, token_list.items);
 
-    const in_word = try std.io.getStdIn().readToEndAlloc(allocator, 1024);
+    const stdin = std.io.getStdIn();
+    defer stdin.close();
+
+    const in_word = try stdin.readToEndAlloc(allocator, 1024);
     const toggle_word = std.fmt.trim(in_word);
 
     const found_word = try findToggleWord(allocator, &lang_map, toggle_word, filetype);
