@@ -16,11 +16,7 @@ const LangToggle = struct {
 const LangMap = std.hash_map.StringHashMap(LangToggle);
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer {
-        assert(!gpa.deinit());
-    }
-    var arena = std.heap.ArenaAllocator.init(&gpa.allocator);
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     var allocator = &arena.allocator;
 
