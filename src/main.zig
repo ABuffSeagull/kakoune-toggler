@@ -9,7 +9,7 @@ const Allocator = std.mem.Allocator;
 const StringList = ArrayList([]const u8);
 
 const LangToggle = struct {
-    extends: ?StringList,
+    extends: ?*StringList,
     toggles: *ArrayList(*StringList),
 };
 
@@ -18,8 +18,7 @@ const LangMap = std.hash_map.StringHashMap(LangToggle);
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer {
-        const did_leak = gpa.deinit();
-        std.debug.print("Leaked? {}\n", .{did_leak});
+        assert(!gpa.deinit());
     }
     var arena = std.heap.ArenaAllocator.init(&gpa.allocator);
     defer arena.deinit();
@@ -51,32 +50,20 @@ pub fn main() !void {
     defer token_list.deinit();
     try tokenizeTOMLFile(&token_list, contents);
 
-    // Print out the tokens for debugging
-    // for (token_list.items) |token| {
-    //     switch (token) {
-    //         .open_bracket => std.debug.print("Open Bracket\n", .{}),
-    //         .close_bracket => std.debug.print("Close Bracket\n", .{}),
-    //         .equal_sign => std.debug.print("Equal Sign\n", .{}),
-    //         .comma => std.debug.print("Comma\n", .{}),
-    //         .string => |string| std.debug.print("String: {}\n", .{string}),
-    //         .identifier => |ident| std.debug.print("Identifier: {}\n", .{ident}),
-    //     }
-    // }
-
     // Parse the file
     var lang_map = LangMap.init(allocator);
     defer token_list.deinit();
     try parseTokenList(&lang_map, token_list.items);
 
-    // var iter = lang_map.iterator();
-    // while (iter.next()) |entry| {
-    //     std.debug.print("language: {}\n", .{entry.key});
-    //     for (entry.value.toggles.items) |toggles| {
-    //         for (toggles.items) |item| {
-    //             std.debug.print("toggle: {}\n", .{item});
-    //         }
-    //     }
-    // }
+    const in_word = try std.io.getStdIn().readToEndAlloc(allocator, 1024);
+    const toggle_word = std.fmt.trim(in_word);
+
+    const found_word = try findToggleWord(allocator, &lang_map, toggle_word, filetype);
+
+    const stdout = std.io.getStdOut();
+    defer stdout.close();
+
+    _ = try stdout.write(found_word orelse toggle_word);
 }
 
 const TOMLToken = union(enum) {
@@ -183,7 +170,8 @@ fn parseTokenList(lang_map: *LangMap, tokens: []TOMLToken) !void {
                 // Make sure it's the start of an array
                 assert(tokens[index] == .open_bracket);
 
-                var extends_array = StringList.init(allocator);
+                var extends_array = try allocator.create(StringList);
+                extends_array.* = StringList.init(allocator);
                 current_entry.value.extends = extends_array;
 
                 index += 1;
@@ -245,4 +233,31 @@ fn parseTokenList(lang_map: *LangMap, tokens: []TOMLToken) !void {
             },
         }
     }
+}
+
+fn findToggleWord(allocator: *Allocator, lang_map: *LangMap, toggle_word: []const u8, filetype: ?[]const u8) !?[]const u8 {
+    var language_list = ArrayList([]const u8).init(allocator);
+    defer language_list.deinit();
+
+    try language_list.append("global");
+
+    if (filetype != null) try language_list.append(filetype.?);
+
+    while (language_list.popOrNull()) |language| {
+        var current_language = lang_map.get(language);
+        if (current_language == null) continue;
+
+        if (current_language.?.extends != null) {
+            try language_list.appendSlice(current_language.?.extends.?.items);
+        }
+
+        for (current_language.?.toggles.items) |toggle_list| {
+            for (toggle_list.items) |toggle, toggle_index| {
+                if (std.mem.eql(u8, toggle, toggle_word)) {
+                    return toggle_list.items[(toggle_index + 1) % toggle_list.items.len];
+                }
+            }
+        }
+    }
+    return null;
 }
