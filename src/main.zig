@@ -246,16 +246,16 @@ fn findToggleWord(allocator: *Allocator, lang_map: *LangMap, toggle_word: []cons
         var current_language = lang_map.get(language);
         if (current_language == null) continue;
 
-        if (current_language.?.extends != null) {
-            try language_list.appendSlice(current_language.?.extends.?.items);
-        }
-
         for (current_language.?.toggles.items) |toggle_list| {
             for (toggle_list.items) |toggle, toggle_index| {
                 if (std.mem.eql(u8, toggle, toggle_word)) {
                     return toggle_list.items[(toggle_index + 1) % toggle_list.items.len];
                 }
             }
+        }
+
+        if (current_language.?.extends != null) {
+            try language_list.appendSlice(current_language.?.extends.?.items);
         }
     }
     return null;
