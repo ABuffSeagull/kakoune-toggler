@@ -54,7 +54,7 @@ pub fn main() !void {
     defer stdin.close();
 
     const in_word = try stdin.readToEndAlloc(allocator, 2 << 8);
-    const toggle_word = std.fmt.trim(in_word);
+    const toggle_word = std.mem.trim(u8, in_word, &std.ascii.spaces);
 
     const found_word = try findToggleWord(&lang_map, toggle_word, filetype);
 
@@ -79,7 +79,7 @@ fn tokenizeTOMLFile(token_list: *ArrayList(TOMLToken), file_contents: String) !v
     while (index < file_contents.len) : (index += 1) {
         switch (file_contents[index]) {
             // ignore whitespace
-            ' ', '\t', '\r', '\n' => {},
+            ' ', '\t', '\r', '\n', std.ascii.control_code.VT, std.ascii.control_code.FF => {},
             '[' => try token_list.append(.open_bracket),
             ']' => try token_list.append(.close_bracket),
             '=' => try token_list.append(.equal_sign),
