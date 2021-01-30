@@ -16,6 +16,11 @@ use std::path::PathBuf;
 struct LanguageToggle {
     extends: Option<Vec<String>>,
     toggles: Vec<Vec<String>>,
+struct LanguageToggle<'a> {
+    #[serde(borrow)]
+    extends: Option<Vec<&'a str>>,
+    #[serde(borrow)]
+    toggles: Vec<Vec<&'a str>>,
 }
 
 fn main() -> Result<()> {
@@ -48,7 +53,7 @@ fn main() -> Result<()> {
     // };
 
     // Make the toggle file path
-    let path: PathBuf = [config_path.as_str(), "toggles.toml"].iter().collect();
+    let path: PathBuf = [&config_path, "toggles.toml"].iter().collect();
 
     // Read the toggle file
     let bytes = fs::read(&path).with_context(|| {
@@ -59,7 +64,7 @@ fn main() -> Result<()> {
     })?;
 
     // Parse the toggle file into a table
-    let table: HashMap<String, LanguageToggle> = toml::from_slice(&bytes).with_context(|| {
+    let table: HashMap<&str, LanguageToggle> = toml::from_slice(&bytes).with_context(|| {
         format!(
             "Something went wrong parsing the toggle file: {}",
             path.to_string_lossy()
@@ -67,10 +72,10 @@ fn main() -> Result<()> {
     })?;
 
     // Queue of each file to check in sequence
-    let mut filetype_stack = vec!["global".to_string()];
+    let mut filetype_stack = vec!["global"];
 
     // Add the (possible) filetype
-    if let Some(typ) = filetype {
+    if let Some(typ) = filetype.as_deref() {
         filetype_stack.push(typ);
     }
 
@@ -89,9 +94,9 @@ fn main() -> Result<()> {
                     // If found, break out of loop
                     break Some(found_word);
                 };
-                // If it has any extensions, add it to the queue
+                // If it has any extensions, add it to the stack
                 if let Some(extra_filetypes) = &lang_toggles.extends {
-                    filetype_stack.append(&mut extra_filetypes.clone());
+                    filetype_stack.extend_from_slice(extra_filetypes);
                 }
             }
         } else {
@@ -105,10 +110,10 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn get_next_word<'a>(word_array: &'a [String], search_word: &str) -> Option<&'a String> {
+fn get_next_word<'a>(word_array: &[&'a str], search_word: &str) -> Option<&'a str> {
     // Find the position of search_word
     word_array
         .iter()
         .position(|current_word| current_word == search_word)
-        .and_then(|found_index| word_array.iter().cycle().nth(found_index + 1))
+        .and_then(|found_index| word_array.iter().copied().cycle().nth(found_index + 1))
 }
