@@ -6,16 +6,14 @@ use std::fs;
 use std::io;
 use std::path::PathBuf;
 
-// enum Casing {
-//     IsOriginal,
-//     IsTitle,
-//     IsUpper,
-// }
+enum Casing {
+    IsLower,
+    IsUpper,
+    IsTitle,
+    Original,
+}
 
 #[derive(Deserialize)]
-struct LanguageToggle {
-    extends: Option<Vec<String>>,
-    toggles: Vec<Vec<String>>,
 struct LanguageToggle<'a> {
     #[serde(borrow)]
     extends: Option<Vec<&'a str>>,
@@ -38,19 +36,32 @@ fn main() -> Result<()> {
     let search_word = buffer.trim();
 
     // Get the casing of the search word
-    // let word_casing = {
-    //     let mut is_upper_iter = search_word.chars().map(|c| c.is_uppercase());
-    //     let is_title = is_upper_iter
-    //         .next()
-    //         .context("You can't pass an empty string")?;
-    //     if let Some(true) = is_upper_iter.next() {
-    //         Casing::IsUpper
-    //     } else if is_title {
-    //         Casing::IsTitle
-    //     } else {
-    //         Casing::IsLower
-    //     }
-    // };
+    let word_casing = {
+        if search_word.to_lowercase() == search_word {
+            Casing::IsLower
+        } else if search_word.to_uppercase() == search_word {
+            Casing::IsUpper
+        } else {
+            // Grab the first codepoint
+            let first_char = search_word
+                .chars()
+                .next()
+                .context("There isn't a first char?")?;
+
+            // Make the codepoint uppercase
+            // It is possible that it can become multiple codepoints,
+            //  but we're only checking whether it's the same as the original anyway
+            let first_char_upper = first_char.to_uppercase().next().with_context(|| {
+                format!("Somehow the char '{}' couldn't be uppered", first_char)
+            })?;
+
+            if first_char_upper == first_char {
+                Casing::IsTitle
+            } else {
+                Casing::Original
+            }
+        }
+    };
 
     // Make the toggle file path
     let path: PathBuf = [&config_path, "toggles.toml"].iter().collect();
@@ -89,7 +100,7 @@ fn main() -> Result<()> {
                 if let Some(found_word) = lang_toggles
                     .toggles
                     .iter()
-                    .find_map(|arr| get_next_word(arr, &search_word))
+                    .find_map(|arr| get_next_word(arr, &search_word.to_lowercase()))
                 {
                     // If found, break out of loop
                     break Some(found_word);
@@ -105,7 +116,22 @@ fn main() -> Result<()> {
     };
 
     // Print out found toggle or original if not found
-    print!("{}", found_word.unwrap_or(&buffer));
+    print!(
+        "{}",
+        found_word
+            .and_then(|word| match word_casing {
+                Casing::IsLower => Some(word.to_lowercase()),
+                Casing::IsUpper => Some(word.to_uppercase()),
+                Casing::Original => Some(word.to_owned()),
+                Casing::IsTitle => {
+                    let first_char = word.chars().next()?;
+                    let mut new_word = first_char.to_uppercase().to_string();
+                    new_word.push_str(&word.chars().skip(1).collect::<String>());
+                    Some(new_word)
+                }
+            })
+            .unwrap_or_else(|| buffer.to_owned())
+    );
 
     Ok(())
 }
@@ -114,6 +140,7 @@ fn get_next_word<'a>(word_array: &[&'a str], search_word: &str) -> Option<&'a st
     // Find the position of search_word
     word_array
         .iter()
+        .map(|word| word.to_lowercase())
         .position(|current_word| current_word == search_word)
         .and_then(|found_index| word_array.iter().copied().cycle().nth(found_index + 1))
 }
