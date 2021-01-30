@@ -8,6 +8,7 @@ this plugin allows you to toggle words.
 - Toggle between words!
 - Toggle between multiple words!
 - Toggle with multiple cursors!
+- Respects casing in (probably) most languages!
 - Supports TOML config, the **best** config!
 
 ## Requirements
