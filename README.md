@@ -23,7 +23,7 @@ So I think it's a worthy tradeoff.
 
 ## Installation
 
-It is _highly_ recommended to use [plug.kak](https://gitlab.com/andreyorst/plug.kak).
+It is _highly_ recommended to use [plug.kak](https://github.com/robertmeta/plug.kak).
 If so, add this to your kakrc
 
 ```sh
