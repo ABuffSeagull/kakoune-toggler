@@ -27,7 +27,7 @@ It is _highly_ recommended to use [plug.kak](https://github.com/robertmeta/plug.
 If so, add this to your kakrc
 
 ```sh
-plug "abuffseagull/kakoune-toggler" %do{ cargo install --path . }
+plug "abuffseagull/kakoune-toggler" do %{ cargo install --path . }
 ```
 
 Otherwise, just stick it wherever, and make sure the binary (`kakoune-toggler`) is on your path.
